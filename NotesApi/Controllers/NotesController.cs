@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
+using NotesApi.Data;
 using NotesApi.Models;
 
 namespace NotesApi.Controllers;
@@ -11,24 +12,18 @@ namespace NotesApi.Controllers;
 // http://localhost:5118/api/notes
 public class NotesController : ControllerBase
 {
-    private readonly string _connectionString;
+    private readonly INoteRepository _repository;
 
-    public NotesController(IConfiguration config)
+    public NotesController(INoteRepository repository)
     {
-        _connectionString = config.GetConnectionString("DefaultConnection")!;
-    }
-
-    private SqliteConnection GetConnection()
-    {
-        return new SqliteConnection(_connectionString);
+        _repository = repository;
     }
 
     [HttpGet]
     // GET: http://localhost:5118/api/notes
     public async Task<ActionResult<List<Note>>> GetAll()
     {
-        using var db = GetConnection();
-        var notes = await db.QueryAsync<Note>("SELECT * FROM Notes ORDER BY CreatedAt DESC");
+        var notes = await _repository.GetAllAsync();
         return Ok(notes);
     }
 
@@ -36,8 +31,7 @@ public class NotesController : ControllerBase
     // GET: http://localhost:5118/api/notes/{id}
     public async Task<ActionResult<Note>> Get(int id)
     {
-        using var db = GetConnection();
-        var note = await db.QuerySingleOrDefaultAsync<Note>("SELECT * FROM Notes WHERE Id = @Id", new { Id = id });
+        var note = await _repository.GetByIdAsync(id);
         return note == null ? NotFound() : Ok(note);
     }
 
@@ -45,29 +39,23 @@ public class NotesController : ControllerBase
     // POST: http://localhost:5118/api/notes/
     public async Task<ActionResult> Create(Note note)
     {
-        using var db = GetConnection();
-        var sql = "INSERT INTO Notes(Title, Content, CreatedAt) VALUES (@Title, @Content, @CreatedAt); SELECT last_insert_rowid();";
-        note.CreatedAt = DateTime.Now;
-        note.Id = await db.QuerySingleAsync<int>(sql, note);
-        return CreatedAtAction(nameof(Get), new { id = note.Id }, note);
+        var createdNote = await _repository.CreateAsync(note);
+        return CreatedAtAction(nameof(Get), new { id = createdNote.Id }, createdNote);
     }
 
     [HttpPut("{id::int}")]
     // PUT: http://localhost:5118/api/notes/{id}
-    public async Task<ActionResult> Uodate(int id, [FromBody] Note newNote)
+    public async Task<ActionResult> Update(int id, [FromBody] Note newNote)
     {
-        using var db = GetConnection();
-        var sql = "UPDATE Notes SET Title = @Title, Content = @Content WHERE Id = @Id";
-        var rows = await db.ExecuteAsync(sql, new { newNote.Title, newNote.Content, Id = id });
-        return rows == 0 ? NotFound() : NoContent();
+        var isUpdated = await _repository.UpdateAsync(id, newNote);
+        return isUpdated == false ? NotFound() : NoContent();
     }
 
     [HttpDelete("{id::int}")]
     // DELETE: http://localhost:5118/api/notes/{id}
     public async Task<ActionResult> Delete(int id)
     {
-        using var db = GetConnection();
-        var rows = await db.ExecuteAsync("DELETE FROM Notes WHERE Id = @Id", new { Id = id });
-        return rows == 0 ? NotFound() : NoContent();
+        var isDeleted = await _repository.DeleteAsync(id);
+        return isDeleted == false ? NotFound() : NoContent();
     }
 }

@@ -4,7 +4,7 @@ using NotesApi.Models;
 
 namespace NotesApi.Data;
 
-public class NoteRepository
+public class NoteRepository : INoteRepository
 {
     private readonly string _connectionString;
 

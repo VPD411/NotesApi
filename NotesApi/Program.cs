@@ -6,6 +6,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<INoteRepository, NoteRepository>();
+
 builder.Services.AddSingleton(sp =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
