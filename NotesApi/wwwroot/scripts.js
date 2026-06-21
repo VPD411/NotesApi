@@ -69,3 +69,5 @@ async function deleteNote(id) {
 
     loadNotes();
 }
+
+loadNotes();
