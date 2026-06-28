@@ -1,0 +1,16 @@
+services:
+  notesapi:
+    build: .
+    container_name: notesapp
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - PORT=5000
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/notes.db
+    volumes:
+      - notesdata:/app/data
+
+volumes:
+  notesdata:
+  
